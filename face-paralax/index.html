@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+  </head>
+  <body>
+    <script>
+      const width = 480;
+      const height = 360;
+      const fontSize = 18;
+
+      async function main() {
+        console.log("loading model..");
+        const model = await blazeface.load();
+        console.log("model loaded");
+
+        const video = document.createElement("video");
+        document.body.appendChild(video);
+        const capture = await navigator.mediaDevices.getUserMedia({ video: { width, height } });
+        video.srcObject = capture;
+        video.play();
+
+        const canvas = document.createElement("canvas");
+        document.body.appendChild(canvas);
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.font = fontSize + "px monospace";
+        ctx.textBaseline = "middle";
+
+        function draw(predictions) {
+          ctx.drawImage(video, 0, 0);
+          ctx.strokeStyle = "yellow";
+          ctx.lineWidth = 3;
+          for (const prediction of predictions) {
+            ctx.beginPath();
+            const [left, top] = prediction.topLeft;
+            const [right, bottom] = prediction.bottomRight;
+            ctx.rect(left, top, right - left, bottom - top);
+            ctx.stroke();
+          }
+        }
+
+        async function detect() {
+          const predictions = await model.estimateFaces(video, false);
+          draw(predictions);
+          setTimeout(detect, 0);
+        }
+        video.addEventListener("loadeddata", detect, false);
+      }
+      main();
+    </script>
+  </body>
+</html>
