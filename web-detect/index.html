@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  </head>
+  <body>
+    <script>
+      const width = 480;
+      const height = 360;
+      const fontSize = 18;
+
+      async function main() {
+        const video = document.createElement("video");
+        const capture = await navigator.mediaDevices.getUserMedia({ video: { width, height } });
+        video.srcObject = capture;
+        video.play();
+
+        const canvas = document.createElement("canvas");
+        document.body.appendChild(canvas);
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.font = fontSize + "px monospace";
+        ctx.textBaseline = "middle";
+
+        function draw(predictions) {
+          ctx.drawImage(video, 0, 0);
+          for (const prediction of predictions) {
+            ctx.beginPath();
+            ctx.rect(...prediction.bbox);
+            ctx.strokeStyle = "yellow";
+            ctx.stroke();
+            const label = ` ${prediction.class} ${Math.round(100 * prediction.score)}% `;
+            const measure = ctx.measureText(label);
+            ctx.fillStyle = "yellow";
+            ctx.fillRect(prediction.bbox[0], prediction.bbox[1], measure.width, fontSize);
+            ctx.fillStyle = "black";
+            ctx.fillText(label, prediction.bbox[0], prediction.bbox[1] + fontSize / 2);
+          }
+        }
+
+        const model = await cocoSsd.load();
+        async function detect() {
+          const predictions = await model.detect(video);
+          draw(predictions);
+          setTimeout(detect, 0);
+        }
+        detect();
+      }
+      main();
+    </script>
+  </body>
+</html>
