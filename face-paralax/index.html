@@ -5,18 +5,18 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
   </head>
   <body>
+    <div id="loading">loading..</div>
+    <div>
+      <a href="javascript:document.getElementsByTagName('canvas')[0].requestFullscreen()">fullscreen</a>
+    </div>
     <script>
       const width = 480;
       const height = 360;
       const fontSize = 18;
 
       async function main() {
-        console.log("loading model..");
         const model = await blazeface.load();
-        console.log("model loaded");
-
         const video = document.createElement("video");
-        document.body.appendChild(video);
         const capture = await navigator.mediaDevices.getUserMedia({ video: { width, height } });
         video.srcObject = capture;
         video.play();
@@ -30,7 +30,15 @@
         ctx.textBaseline = "middle";
 
         function draw(predictions) {
+          ctx.save();
+          ctx.translate(width / 2, height / 2);
+          ctx.scale(-1, -1);
+          ctx.translate(-width / 2, -height / 2);
+          ctx.fillStyle = "black";
+          ctx.fillRect(0, 0, width, height);
+          ctx.globalAlpha = 0.125;
           ctx.drawImage(video, 0, 0);
+          ctx.globalAlpha = 1;
           ctx.strokeStyle = "yellow";
           ctx.lineWidth = 3;
           for (const prediction of predictions) {
@@ -38,16 +46,28 @@
             const [left, top] = prediction.topLeft;
             const [right, bottom] = prediction.bottomRight;
             ctx.rect(left, top, right - left, bottom - top);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(left, top);
+            ctx.moveTo(width, 0);
+            ctx.lineTo(right, top);
+            ctx.moveTo(0, height);
+            ctx.lineTo(left, bottom);
+            ctx.moveTo(width, height);
+            ctx.lineTo(right, bottom);
             ctx.stroke();
           }
+          ctx.restore();
         }
-
         async function detect() {
           const predictions = await model.estimateFaces(video, false);
           draw(predictions);
           setTimeout(detect, 0);
         }
-        video.addEventListener("loadeddata", detect, false);
+        function start() {
+          document.getElementById("loading").remove();
+          detect();
+        }
+        video.addEventListener("loadeddata", start, false);
       }
       main();
     </script>
