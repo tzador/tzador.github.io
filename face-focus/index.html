@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+  </head>
+  <body>
+    <div id="loading">loading..</div>
+    <div>
+      <a href="javascript:document.getElementsByTagName('canvas')[0].requestFullscreen()">fullscreen</a>
+    </div>
+    <script>
+      const width = 480;
+      const height = 360;
+      const fontSize = 18;
+
+      async function main() {
+        const model = await blazeface.load();
+        const video = document.createElement("video");
+        const capture = await navigator.mediaDevices.getUserMedia({ video: { width, height } });
+        video.srcObject = capture;
+        video.play();
+
+        const canvas = document.createElement("canvas");
+        document.body.appendChild(canvas);
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.font = fontSize + "px monospace";
+        ctx.textBaseline = "middle";
+
+        function draw(predictions) {
+          let min_x = width;
+          let max_x = 0;
+          let min_y = height;
+          let max_y = 0;
+          for (const prediction of predictions) {
+            const [left, top] = prediction.topLeft;
+            const [right, bottom] = prediction.bottomRight;
+            min_x = Math.min(min_x, left);
+            max_x = Math.max(max_x, right);
+            min_y = Math.min(min_y, top);
+            max_y = Math.max(max_y, bottom);
+          }
+          ctx.drawImage(video, min_x, min_y, max_x - min_x, max_y - min_y, 0, 0, width, height);
+        }
+        async function detect() {
+          const predictions = await model.estimateFaces(video, false);
+          draw(predictions);
+          setTimeout(detect, 0);
+        }
+        function start() {
+          document.getElementById("loading").remove();
+          detect();
+        }
+        video.addEventListener("loadeddata", start, false);
+      }
+      main();
+    </script>
+  </body>
+</html>
