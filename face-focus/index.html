@@ -29,6 +29,11 @@
         ctx.font = fontSize + "px monospace";
         ctx.textBaseline = "middle";
 
+        const anim = 0.9;
+        let anim_min_x = width;
+        let anim_max_x = 0;
+        let anim_min_y = height;
+        let anim_max_y = 0;
         function draw(predictions) {
           let min_x = width;
           let max_x = 0;
@@ -42,7 +47,21 @@
             min_y = Math.min(min_y, top);
             max_y = Math.max(max_y, bottom);
           }
-          ctx.drawImage(video, min_x, min_y, max_x - min_x, max_y - min_y, 0, 0, width, height);
+          anim_min_x = anim_min_x * anim + (1 - anim) * min_x;
+          anim_max_x = anim_max_x * anim + (1 - anim) * max_x;
+          anim_min_y = anim_min_y * anim + (1 - anim) * min_y;
+          anim_max_y = anim_max_y * anim + (1 - anim) * max_y;
+          ctx.drawImage(
+            video,
+            anim_min_x,
+            anim_min_y,
+            anim_max_x - anim_min_x,
+            anim_max_y - anim_min_y,
+            0,
+            0,
+            width,
+            height
+          );
         }
         async function detect() {
           const predictions = await model.estimateFaces(video, false);
